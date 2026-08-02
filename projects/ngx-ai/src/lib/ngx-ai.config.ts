@@ -1,4 +1,4 @@
-import { InjectionToken } from '@angular/core';
+import { InjectionToken, EnvironmentProviders, makeEnvironmentProviders } from '@angular/core';
 
 /**
  * Supported provider presets. `custom` is intended for your own
@@ -95,4 +95,23 @@ export function resolveNgxAiConfig(config: NgxAiConfig): ResolvedNgxAiConfig {
   }
 
   return { ...config, provider, baseUrl, model };
+}
+
+/**
+ * Register ngx-ai in a standalone Angular application.
+ *
+ * @example
+ * ```ts
+ * bootstrapApplication(App, {
+ *   providers: [
+ *     provideHttpClient(),
+ *     provideNgxAi({ provider: 'custom', baseUrl: '/api/ai' }),
+ *   ],
+ * });
+ * ```
+ */
+export function provideNgxAi(config: NgxAiConfig): EnvironmentProviders {
+  return makeEnvironmentProviders([
+    { provide: NGX_AI_CONFIG, useValue: resolveNgxAiConfig(config) },
+  ]);
 }
