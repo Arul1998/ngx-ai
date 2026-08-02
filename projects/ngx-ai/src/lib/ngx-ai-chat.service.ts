@@ -39,6 +39,13 @@ export class NgxAiChatService {
       .pipe(map((res) => this.mapCompletion(res)));
   }
 
+  /**
+   * Convenience wrapper around {@link chat} that emits only the text content.
+   */
+  complete(prompt: string, options: ChatCompletionOptions = {}): Observable<string> {
+    return this.chat([{ role: 'user', content: prompt }], options).pipe(map((r) => r.content));
+  }
+
   private buildBody(
     messages: ChatMessage[],
     options: ChatCompletionOptions,
