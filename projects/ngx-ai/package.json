@@ -1,9 +1,37 @@
 {
-  "name": "ngx-ai",
-  "version": "0.0.1",
+  "name": "@arulcornelious/ngx-ai",
+  "version": "0.1.0",
+  "publishConfig": {
+    "access": "public"
+  },
+  "description": "RxJS-friendly Angular client for OpenAI-compatible chat APIs (OpenAI, xAI Grok, or your own proxy) with first-class streaming support.",
+  "keywords": [
+    "angular",
+    "openai",
+    "grok",
+    "xai",
+    "llm",
+    "ai",
+    "chatgpt",
+    "chat-completions",
+    "streaming",
+    "rxjs",
+    "typescript"
+  ],
+  "author": "Arul Cornelious <arulcornelious@gmail.com> (https://arulcornelious.com)",
+  "license": "MIT",
+  "homepage": "https://github.com/arul1998/ngx-ai#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/arul1998/ngx-ai.git"
+  },
+  "bugs": {
+    "url": "https://github.com/arul1998/ngx-ai/issues"
+  },
   "peerDependencies": {
-    "@angular/common": "^22.1.0",
-    "@angular/core": "^22.1.0"
+    "@angular/common": ">=17.0.0",
+    "@angular/core": ">=17.0.0",
+    "rxjs": "^6.5.3 || ^7.4.0"
   },
   "dependencies": {
     "tslib": "^2.3.0"
