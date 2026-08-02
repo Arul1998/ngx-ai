@@ -4,9 +4,12 @@
   "scripts": {
     "ng": "ng",
     "start": "ng serve",
-    "build": "ng build",
-    "watch": "ng build --watch --configuration development",
-    "test": "ng test"
+    "build": "ng build ngx-ai",
+    "watch": "ng build ngx-ai --watch --configuration development",
+    "test": "ng test ngx-ai --watch=false",
+    "lint": "prettier --check \"projects/**/*.{ts,html,json,md}\"",
+    "format": "prettier --write \"projects/**/*.{ts,html,json,md}\"",
+    "pack:lib": "npm run build && cd dist/ngx-ai && npm pack"
   },
   "private": true,
   "packageManager": "npm@11.17.0",
