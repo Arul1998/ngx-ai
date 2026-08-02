@@ -67,3 +67,32 @@ const PROVIDER_DEFAULTS: Record<AiProvider, ProviderDefaults> = {
 
 /** DI token holding the resolved ngx-ai configuration. */
 export const NGX_AI_CONFIG = new InjectionToken<ResolvedNgxAiConfig>('NGX_AI_CONFIG');
+
+/**
+ * Resolve a partial {@link NgxAiConfig} against its provider preset,
+ * validating that required values are present.
+ */
+export function resolveNgxAiConfig(config: NgxAiConfig): ResolvedNgxAiConfig {
+  const provider = config.provider ?? 'openai';
+  const defaults = PROVIDER_DEFAULTS[provider];
+  const baseUrl = (config.baseUrl ?? defaults.baseUrl).replace(/\/+$/, '');
+  const model = config.model ?? defaults.model;
+
+  if (!baseUrl) {
+    throw new Error(
+      `[ngx-ai] A "baseUrl" is required when provider is "custom". ` +
+        `Point it at your backend proxy, e.g. provideNgxAi({ provider: 'custom', baseUrl: '/api/ai' }).`,
+    );
+  }
+
+  if (config.apiKey && !config.dangerouslyAllowBrowserApiKey) {
+    throw new Error(
+      `[ngx-ai] An "apiKey" was provided but "dangerouslyAllowBrowserApiKey" is not set. ` +
+        `Shipping an API key to the browser exposes it to every visitor. ` +
+        `Prefer a backend proxy (provider: 'custom', baseUrl: '/api/ai'). ` +
+        `If this is a trusted internal tool, opt in with dangerouslyAllowBrowserApiKey: true.`,
+    );
+  }
+
+  return { ...config, provider, baseUrl, model };
+}
