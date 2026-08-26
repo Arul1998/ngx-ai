@@ -17,7 +17,7 @@ npm install
 | --- | --- |
 | Build the library | `npm run build` |
 | Run unit tests | `npm test` |
-| Lint / format check | `npm run lint` |
+| Format check | `npm run format:check` |
 
 The library source lives in [`projects/ngx-ai/src`](projects/ngx-ai/src).
 

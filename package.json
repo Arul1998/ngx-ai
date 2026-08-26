@@ -7,7 +7,7 @@
     "build": "ng build ngx-ai",
     "watch": "ng build ngx-ai --watch --configuration development",
     "test": "ng test ngx-ai --watch=false",
-    "lint": "prettier --check \"projects/**/*.{ts,html,json,md}\"",
+    "format:check": "prettier --check \"projects/**/*.{ts,html,json,md}\"",
     "format": "prettier --write \"projects/**/*.{ts,html,json,md}\"",
     "pack:lib": "npm run build && cd dist/ngx-ai && npm pack"
   },

@@ -29,7 +29,7 @@ streaming and a safe-by-default key policy built in.
 npm install      # install dependencies
 npm run build    # build the library to dist/ngx-ai
 npm test         # run the unit tests
-npm run lint     # check formatting
+npm run format:check  # check formatting
 ```
 
 ## Publishing
