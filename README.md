@@ -3,7 +3,7 @@
 > RxJS-friendly Angular client for OpenAI-compatible chat APIs (OpenAI, xAI Grok, or your own proxy) with first-class streaming.
 
 [![CI](https://github.com/arul1998/ngx-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/arul1998/ngx-ai/actions/workflows/ci.yml)
-[![npm version](https://img.shields.io/npm/v/@arulcornelious/ngx-ai.svg)](https://www.npmjs.com/package/@arulcornelious/ngx-ai)
+[![npm version](https://img.shields.io/npm/v/ngxai.svg)](https://www.npmjs.com/package/ngxai)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
 
 This is the monorepo for the **`ngx-ai`** Angular library.
@@ -37,7 +37,7 @@ npm run format:check  # check formatting
 ```bash
 npm run build
 cd dist/ngx-ai
-npm publish --access public
+npm publish
 ```
 
 ## Contributing

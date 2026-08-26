@@ -1,7 +1,7 @@
 # ngx-ai
 
-[![npm version](https://img.shields.io/npm/v/@arulcornelious/ngx-ai.svg)](https://www.npmjs.com/package/@arulcornelious/ngx-ai)
-[![npm downloads](https://img.shields.io/npm/dm/@arulcornelious/ngx-ai.svg)](https://www.npmjs.com/package/@arulcornelious/ngx-ai)
+[![npm version](https://img.shields.io/npm/v/ngxai.svg)](https://www.npmjs.com/package/ngxai)
+[![npm downloads](https://img.shields.io/npm/dm/ngxai.svg)](https://www.npmjs.com/package/ngxai)
 [![CI](https://github.com/arul1998/ngx-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/arul1998/ngx-ai/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
 
@@ -18,7 +18,7 @@
 ## Installation
 
 ```bash
-npm install @arulcornelious/ngx-ai
+npm install ngxai
 ```
 
 ## Quick start
@@ -28,7 +28,7 @@ Register the provider once (standalone bootstrap shown):
 ```ts
 import { bootstrapApplication } from '@angular/platform-browser';
 import { provideHttpClient } from '@angular/common/http';
-import { provideNgxAi } from '@arulcornelious/ngx-ai';
+import { provideNgxAi } from 'ngxai';
 import { App } from './app/app';
 
 bootstrapApplication(App, {
@@ -44,7 +44,7 @@ Inject the service and chat:
 
 ```ts
 import { Component, inject, signal } from '@angular/core';
-import { NgxAiChatService } from '@arulcornelious/ngx-ai';
+import { NgxAiChatService } from 'ngxai';
 
 @Component({
   selector: 'app-chat',

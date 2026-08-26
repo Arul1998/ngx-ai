@@ -1,9 +1,6 @@
 {
-  "name": "@arulcornelious/ngx-ai",
+  "name": "ngxai",
   "version": "0.1.0",
-  "publishConfig": {
-    "access": "public"
-  },
   "description": "RxJS-friendly Angular client for OpenAI-compatible chat APIs (OpenAI, xAI Grok, or your own proxy) with first-class streaming support.",
   "keywords": [
     "angular",
