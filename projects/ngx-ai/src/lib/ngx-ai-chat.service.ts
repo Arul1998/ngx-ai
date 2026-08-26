@@ -1,6 +1,6 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { Observable, map } from 'rxjs';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { Observable, catchError, map, throwError } from 'rxjs';
 import { NGX_AI_CONFIG, ResolvedNgxAiConfig } from './ngx-ai.config';
 import {
   ChatCompletionOptions,
@@ -37,7 +37,10 @@ export class NgxAiChatService {
       .post<Record<string, any>>(`${this.config.baseUrl}/chat/completions`, body, {
         headers: this.buildHeaders(),
       })
-      .pipe(map((res) => this.mapCompletion(res)));
+      .pipe(
+        map((res) => this.mapCompletion(res)),
+        catchError((err) => throwError(() => toNgxAiError(err))),
+      );
   }
 
   /**
@@ -99,22 +102,41 @@ export class NgxAiChatService {
           const decoder = new TextDecoder();
           let buffer = '';
 
-          while (true) {
-            const { value, done } = await reader.read();
-            if (done) break;
-            buffer += decoder.decode(value, { stream: true });
-
+          // Emit every complete event currently buffered. Returns true when a
+          // `[DONE]` sentinel was seen and the stream should be finished.
+          const drain = (): boolean => {
             let boundary: number;
             // SSE events are separated by a blank line.
             while ((boundary = buffer.indexOf('\n\n')) !== -1) {
               const rawEvent = buffer.slice(0, boundary);
               buffer = buffer.slice(boundary + 2);
               const chunk = parseSseEvent(rawEvent, this.config.model);
-              if (chunk === 'DONE') {
-                subscriber.complete();
-                return;
-              }
+              if (chunk === 'DONE') return true;
               if (chunk) subscriber.next(chunk);
+            }
+            return false;
+          };
+
+          while (true) {
+            const { value, done } = await reader.read();
+            if (done) break;
+            // Normalize CRLF so boundary/line splitting works regardless of how
+            // the server (or an intervening proxy) frames its events.
+            buffer += decoder.decode(value, { stream: true }).replace(/\r\n/g, '\n');
+            if (drain()) {
+              subscriber.complete();
+              return;
+            }
+          }
+
+          // Flush any bytes the decoder was still holding, then process a final
+          // event that was not terminated by a trailing blank line.
+          buffer += decoder.decode().replace(/\r\n/g, '\n');
+          if (!drain()) {
+            const rawEvent = buffer.trim();
+            if (rawEvent) {
+              const chunk = parseSseEvent(rawEvent, this.config.model);
+              if (chunk && chunk !== 'DONE') subscriber.next(chunk);
             }
           }
 
@@ -139,10 +161,12 @@ export class NgxAiChatService {
     stream: boolean,
   ): Record<string, unknown> {
     const body: Record<string, unknown> = {
+      // Spread caller-supplied fields first so the core fields below always win
+      // and cannot be silently clobbered (e.g. `extraBody: { stream: false }`).
+      ...options.extraBody,
       model: options.model ?? this.config.model,
       messages,
       stream,
-      ...options.extraBody,
     };
     if (options.temperature !== undefined) body['temperature'] = options.temperature;
     if (options.maxTokens !== undefined) body['max_tokens'] = options.maxTokens;
@@ -219,4 +243,35 @@ async function safeReadText(response: Response): Promise<string> {
   } catch {
     return '';
   }
+}
+
+/**
+ * Normalize a failed `HttpClient` request into a single, readable `[ngx-ai]`
+ * error, matching the shape thrown by {@link NgxAiChatService.stream}. The
+ * original `HttpErrorResponse` is preserved on the `cause` for advanced use.
+ */
+function toNgxAiError(err: unknown): Error {
+  if (err instanceof HttpErrorResponse) {
+    const detail = extractErrorDetail(err.error);
+    const message =
+      `[ngx-ai] Request failed (${err.status} ${err.statusText}).` + (detail ? ` ${detail}` : '');
+    return new Error(message, { cause: err });
+  }
+  return err instanceof Error ? err : new Error(`[ngx-ai] Request failed. ${String(err)}`);
+}
+
+/** Pull a human-readable message out of a provider error payload, if present. */
+function extractErrorDetail(body: unknown): string {
+  if (typeof body === 'string') return body;
+  if (body && typeof body === 'object') {
+    const error = (body as Record<string, any>)['error'];
+    const message = typeof error === 'object' ? error?.['message'] : error;
+    if (typeof message === 'string') return message;
+    try {
+      return JSON.stringify(body);
+    } catch {
+      return '';
+    }
+  }
+  return '';
 }
