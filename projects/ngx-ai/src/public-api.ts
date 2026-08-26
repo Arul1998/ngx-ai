@@ -8,3 +8,5 @@ export { NGX_AI_CONFIG, provideNgxAi, resolveNgxAiConfig } from './lib/ngx-ai.co
 export * from './lib/ngx-ai-chat.service';
 export { SseParser } from './lib/stream/sse-parser';
 export type { SseEvent } from './lib/stream/sse-parser';
+export { injectAiChat } from './lib/signals/ai-chat';
+export type { AiChat, AiChatConfig } from './lib/signals/ai-chat';

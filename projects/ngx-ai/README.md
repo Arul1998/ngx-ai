@@ -7,7 +7,8 @@
 
 **RxJS-friendly Angular client for OpenAI-compatible chat APIs** — OpenAI, xAI Grok, or your own backend proxy — with first-class **streaming**.
 
-- 🅰️ **Angular-native** — a `provideNgxAi()` provider and an injectable service. No modules, no boilerplate.
+- 🅰️ **Angular-native** — a `provideNgxAi()` provider, an injectable service, and a signal-backed `injectAiChat()` store. No modules, no boilerplate.
+- ⚡ **Signals-first** — `injectAiChat()` exposes `messages()`, `response()`, `loading()`, `streaming()` and `error()` as signals your templates react to automatically.
 - 🌊 **Streaming built in** — subscribe to tokens as they arrive; unsubscribe to abort.
 - 🔌 **Provider presets** — `openai` and `grok` out of the box, plus `custom` for your proxy.
 - 🧩 **Typed, RxJS-first API** — everything returns `Observable`s that compose with the rest of your app.
@@ -80,6 +81,53 @@ ask() {
     });
 }
 ```
+
+## Signals API
+
+Prefer signals over subscriptions? `injectAiChat()` gives you a reactive chat
+store that manages the conversation for you. Call it from a component (an
+injection context) and bind straight to the signals — no manual subscribe, and
+in-flight requests are aborted automatically when the component is destroyed.
+
+```ts
+import { Component } from '@angular/core';
+import { injectAiChat } from '@arulcornelious/ngx-ai';
+
+@Component({
+  selector: 'app-chat',
+  template: `
+    @for (m of chat.messages(); track $index) {
+      <p>
+        <b>{{ m.role }}:</b> {{ m.content }}
+      </p>
+    }
+    @if (chat.streaming()) {
+      <p>…</p>
+    }
+    @if (chat.error(); as e) {
+      <p class="error">{{ e.message }}</p>
+    }
+    <button (click)="chat.stream('Explain Angular signals in one line')">Ask</button>
+  `,
+})
+export class ChatComponent {
+  readonly chat = injectAiChat({ system: 'You are concise.' });
+}
+```
+
+| Member           | Type                    | Description                                            |
+| ---------------- | ----------------------- | ------------------------------------------------------ |
+| `messages()`     | `Signal<ChatMessage[]>` | The conversation; the assistant reply updates live.    |
+| `response()`     | `Signal<string>`        | The latest assistant message text.                     |
+| `loading()`      | `Signal<boolean>`       | `true` during a non-streaming `send()`.                |
+| `streaming()`    | `Signal<boolean>`       | `true` while `stream()` is producing tokens.           |
+| `error()`        | `Signal<Error \| null>` | The most recent error, cleared when a request starts.  |
+| `send(prompt)`   | `void`                  | Send a message and await the full reply.               |
+| `stream(prompt)` | `void`                  | Send a message and stream the reply token-by-token.    |
+| `abort()`        | `void`                  | Cancel an in-flight stream, keeping text so far.       |
+| `reset()`        | `void`                  | Reset to the initial (optionally system-seeded) state. |
+
+`send()` and `stream()` accept the same `ChatCompletionOptions` as the service.
 
 ## Configuration
 
