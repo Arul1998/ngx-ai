@@ -8,6 +8,8 @@ import {
   ChatMessage,
   ChatStreamChunk,
 } from './models/chat.models';
+import { SseParser } from './stream/sse-parser';
+import { STREAM_DONE, chatChunkFromSseData } from './stream/chat-stream';
 
 /**
  * RxJS-friendly client for OpenAI-compatible chat completion APIs
@@ -100,18 +102,13 @@ export class NgxAiChatService {
 
           const reader = response.body.getReader();
           const decoder = new TextDecoder();
-          let buffer = '';
+          const parser = new SseParser();
 
-          // Emit every complete event currently buffered. Returns true when a
-          // `[DONE]` sentinel was seen and the stream should be finished.
-          const drain = (): boolean => {
-            let boundary: number;
-            // SSE events are separated by a blank line.
-            while ((boundary = buffer.indexOf('\n\n')) !== -1) {
-              const rawEvent = buffer.slice(0, boundary);
-              buffer = buffer.slice(boundary + 2);
-              const chunk = parseSseEvent(rawEvent, this.config.model);
-              if (chunk === 'DONE') return true;
+          // Emit each event's delta; return true once `[DONE]` ends the stream.
+          const emit = (events: readonly { data: string }[]): boolean => {
+            for (const event of events) {
+              const chunk = chatChunkFromSseData(event.data, this.config.model);
+              if (chunk === STREAM_DONE) return true;
               if (chunk) subscriber.next(chunk);
             }
             return false;
@@ -120,26 +117,16 @@ export class NgxAiChatService {
           while (true) {
             const { value, done } = await reader.read();
             if (done) break;
-            // Normalize CRLF so boundary/line splitting works regardless of how
-            // the server (or an intervening proxy) frames its events.
-            buffer += decoder.decode(value, { stream: true }).replace(/\r\n/g, '\n');
-            if (drain()) {
+            if (emit(parser.push(decoder.decode(value, { stream: true })))) {
               subscriber.complete();
               return;
             }
           }
 
-          // Flush any bytes the decoder was still holding, then process a final
-          // event that was not terminated by a trailing blank line.
-          buffer += decoder.decode().replace(/\r\n/g, '\n');
-          if (!drain()) {
-            const rawEvent = buffer.trim();
-            if (rawEvent) {
-              const chunk = parseSseEvent(rawEvent, this.config.model);
-              if (chunk && chunk !== 'DONE') subscriber.next(chunk);
-            }
-          }
-
+          // Flush any bytes the decoder held, plus a final event that was not
+          // terminated by a trailing blank line.
+          emit(parser.push(decoder.decode()));
+          emit(parser.flush());
           subscriber.complete();
         } catch (err) {
           if (controller.signal.aborted) {
@@ -204,37 +191,6 @@ export class NgxAiChatService {
       raw: res,
     };
   }
-}
-
-/** Parse one SSE event block into a stream chunk, or `'DONE'` at end of stream. */
-function parseSseEvent(rawEvent: string, fallbackModel: string): ChatStreamChunk | 'DONE' | null {
-  // An event may contain multiple `data:` lines; concatenate their payloads.
-  const dataLines = rawEvent
-    .split('\n')
-    .map((line) => line.trimStart())
-    .filter((line) => line.startsWith('data:'))
-    .map((line) => line.slice('data:'.length).trim());
-
-  if (dataLines.length === 0) return null;
-
-  const payload = dataLines.join('');
-  if (payload === '[DONE]') return 'DONE';
-
-  let json: Record<string, any>;
-  try {
-    json = JSON.parse(payload);
-  } catch {
-    return null;
-  }
-
-  const choice = json?.['choices']?.[0] ?? {};
-  return {
-    id: json?.['id'] ?? '',
-    model: json?.['model'] ?? fallbackModel,
-    delta: choice?.['delta']?.['content'] ?? '',
-    finishReason: choice?.['finish_reason'] ?? null,
-    raw: json,
-  };
 }
 
 async function safeReadText(response: Response): Promise<string> {
