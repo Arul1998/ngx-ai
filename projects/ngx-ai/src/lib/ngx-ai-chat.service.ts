@@ -10,6 +10,7 @@ import {
 } from './models/chat.models';
 import { SseParser } from './stream/sse-parser';
 import { STREAM_DONE, chatChunkFromSseData } from './stream/chat-stream';
+import { OpenAiCompletionPayload } from './models/provider';
 
 /**
  * RxJS-friendly client for OpenAI-compatible chat completion APIs
@@ -36,7 +37,7 @@ export class NgxAiChatService {
   ): Observable<ChatCompletionResponse> {
     const body = this.buildBody(messages, options, false);
     return this.http
-      .post<Record<string, any>>(`${this.config.baseUrl}/chat/completions`, body, {
+      .post<OpenAiCompletionPayload>(`${this.config.baseUrl}/chat/completions`, body, {
         headers: this.buildHeaders(),
       })
       .pipe(
@@ -50,6 +51,35 @@ export class NgxAiChatService {
    */
   complete(prompt: string, options: ChatCompletionOptions = {}): Observable<string> {
     return this.chat([{ role: 'user', content: prompt }], options).pipe(map((r) => r.content));
+  }
+
+  /**
+   * Request a structured JSON response and parse it into `T`.
+   *
+   * Sets `response_format` to `{ type: 'json_object' }` by default; pass your
+   * own `options.responseFormat` (e.g. a `json_schema` spec) to override. The
+   * assistant content is `JSON.parse`d, and a parse failure surfaces as a
+   * readable `[ngx-ai]` error rather than a raw `SyntaxError`.
+   *
+   * @example
+   * ```ts
+   * ai.json<{ city: string }>([{ role: 'user', content: 'JSON with a city field' }])
+   *   .subscribe(obj => console.log(obj.city));
+   * ```
+   */
+  json<T = unknown>(messages: ChatMessage[], options: ChatCompletionOptions = {}): Observable<T> {
+    const responseFormat = options.responseFormat ?? { type: 'json_object' };
+    return this.chat(messages, { ...options, responseFormat }).pipe(
+      map((res) => {
+        try {
+          return JSON.parse(res.content) as T;
+        } catch {
+          throw new Error(
+            `[ngx-ai] Failed to parse JSON response. The model returned: ${res.content}`,
+          );
+        }
+      }),
+    );
   }
 
   /**
@@ -159,6 +189,7 @@ export class NgxAiChatService {
     if (options.maxTokens !== undefined) body['max_tokens'] = options.maxTokens;
     if (options.topP !== undefined) body['top_p'] = options.topP;
     if (options.stop !== undefined) body['stop'] = options.stop;
+    if (options.responseFormat !== undefined) body['response_format'] = options.responseFormat;
     return body;
   }
 
@@ -173,19 +204,19 @@ export class NgxAiChatService {
     return headers;
   }
 
-  private mapCompletion(res: Record<string, any>): ChatCompletionResponse {
-    const choice = res?.['choices']?.[0] ?? {};
-    const usage = res?.['usage'];
+  private mapCompletion(res: OpenAiCompletionPayload): ChatCompletionResponse {
+    const choice = res.choices?.[0];
+    const usage = res.usage;
     return {
-      id: res?.['id'] ?? '',
-      model: res?.['model'] ?? this.config.model,
-      content: choice?.['message']?.['content'] ?? '',
-      finishReason: choice?.['finish_reason'] ?? null,
+      id: res.id ?? '',
+      model: res.model ?? this.config.model,
+      content: choice?.message?.content ?? '',
+      finishReason: choice?.finish_reason ?? null,
       usage: usage
         ? {
-            promptTokens: usage['prompt_tokens'] ?? 0,
-            completionTokens: usage['completion_tokens'] ?? 0,
-            totalTokens: usage['total_tokens'] ?? 0,
+            promptTokens: usage.prompt_tokens ?? 0,
+            completionTokens: usage.completion_tokens ?? 0,
+            totalTokens: usage.total_tokens ?? 0,
           }
         : undefined,
       raw: res,

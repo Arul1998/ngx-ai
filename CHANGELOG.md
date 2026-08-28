@@ -4,6 +4,23 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2026-08-28
+
+### Added
+
+- **`NgxAiChatService.json<T>()`** — request structured output and parse the
+  reply into `T`. Defaults `response_format` to `{ type: 'json_object' }`, and
+  raises a readable `[ngx-ai]` error instead of a raw `SyntaxError` when the
+  model returns invalid JSON.
+- **`responseFormat`** option on `ChatCompletionOptions`, mapped to the
+  provider `response_format` field (supports `json_object` and `json_schema`).
+
+### Changed
+
+- Internal provider-response mapping is now typed against dedicated
+  `OpenAi*` payload interfaces instead of `Record<string, any>`, tightening
+  compile-time checks in `chat()` and the streaming parser.
+
 ## [0.3.0] - 2026-08-26
 
 ### Added
@@ -55,6 +72,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `dangerouslyAllowBrowserApiKey` is set.
 - Unit test suite covering config resolution and request/response mapping.
 
+[0.4.0]: https://github.com/arul1998/ngx-ai/releases/tag/v0.4.0
 [0.3.0]: https://github.com/arul1998/ngx-ai/releases/tag/v0.3.0
 [0.2.0]: https://github.com/arul1998/ngx-ai/releases/tag/v0.2.0
 [0.1.0]: https://github.com/arul1998/ngx-ai/releases/tag/v0.1.0

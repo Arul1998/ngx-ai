@@ -1,4 +1,5 @@
 import { ChatStreamChunk } from '../models/chat.models';
+import { OpenAiStreamPayload } from '../models/provider';
 
 /** Sentinel returned when the stream's terminating `[DONE]` payload is seen. */
 export const STREAM_DONE = Symbol('ngx-ai/stream-done');
@@ -19,19 +20,19 @@ export function chatChunkFromSseData(
   if (payload === '') return null;
   if (payload === '[DONE]') return STREAM_DONE;
 
-  let json: Record<string, any>;
+  let json: OpenAiStreamPayload;
   try {
     json = JSON.parse(payload);
   } catch {
     return null;
   }
 
-  const choice = json?.['choices']?.[0] ?? {};
+  const choice = json.choices?.[0];
   return {
-    id: json?.['id'] ?? '',
-    model: json?.['model'] ?? fallbackModel,
-    delta: choice?.['delta']?.['content'] ?? '',
-    finishReason: choice?.['finish_reason'] ?? null,
+    id: json.id ?? '',
+    model: json.model ?? fallbackModel,
+    delta: choice?.delta?.content ?? '',
+    finishReason: choice?.finish_reason ?? null,
     raw: json,
   };
 }

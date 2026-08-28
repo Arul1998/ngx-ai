@@ -129,6 +129,42 @@ export class ChatComponent {
 
 `send()` and `stream()` accept the same `ChatCompletionOptions` as the service.
 
+## Structured output
+
+`json<T>()` asks the model for a JSON object and parses the reply into `T`. It
+sets `response_format` to `{ type: 'json_object' }` by default, and raises a
+readable error if the model returns something that isn't valid JSON.
+
+```ts
+interface Weather {
+  city: string;
+  celsius: number;
+}
+
+this.ai
+  .json<Weather>([{ role: 'user', content: 'Weather in Paris as JSON: city, celsius' }])
+  .subscribe((w) => console.log(w.city, w.celsius));
+```
+
+Need a strict schema? Pass your own `responseFormat` (e.g. a provider
+`json_schema` spec) and it overrides the default:
+
+```ts
+this.ai.json<Weather>(messages, {
+  responseFormat: {
+    type: 'json_schema',
+    json_schema: {
+      name: 'weather',
+      schema: {
+        type: 'object',
+        properties: { city: { type: 'string' }, celsius: { type: 'number' } },
+        required: ['city', 'celsius'],
+      },
+    },
+  },
+});
+```
+
 ## Configuration
 
 | Option                          | Type                             | Default    | Notes                                                   |
@@ -162,11 +198,12 @@ The `custom` provider speaks the standard OpenAI chat-completions shape, so most
 
 ### `NgxAiChatService`
 
-| Method                       | Returns                              | Description                                 |
-| ---------------------------- | ------------------------------------ | ------------------------------------------- |
-| `chat(messages, options?)`   | `Observable<ChatCompletionResponse>` | One complete response.                      |
-| `complete(prompt, options?)` | `Observable<string>`                 | Convenience wrapper emitting just the text. |
-| `stream(messages, options?)` | `Observable<ChatStreamChunk>`        | Token-by-token streaming.                   |
+| Method                        | Returns                              | Description                                 |
+| ----------------------------- | ------------------------------------ | ------------------------------------------- |
+| `chat(messages, options?)`    | `Observable<ChatCompletionResponse>` | One complete response.                      |
+| `complete(prompt, options?)`  | `Observable<string>`                 | Convenience wrapper emitting just the text. |
+| `json<T>(messages, options?)` | `Observable<T>`                      | Structured output, parsed into `T`.         |
+| `stream(messages, options?)`  | `Observable<ChatStreamChunk>`        | Token-by-token streaming.                   |
 
 `ChatCompletionOptions`: `model`, `temperature`, `maxTokens`, `topP`, `stop`, `signal`, `extraBody`.
 

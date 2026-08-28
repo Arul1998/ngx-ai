@@ -28,6 +28,12 @@ export interface ChatCompletionOptions {
   topP?: number;
   /** Stop sequence(s) that halt generation. */
   stop?: string | string[];
+  /**
+   * Provider `response_format`, e.g. `{ type: 'json_object' }` or a
+   * `{ type: 'json_schema', json_schema: … }` spec for structured output.
+   * {@link NgxAiChatService.json} sets `{ type: 'json_object' }` by default.
+   */
+  responseFormat?: unknown;
   /** Abort signal to cancel an in-flight streaming request. */
   signal?: AbortSignal;
   /** Provider-specific fields merged as-is into the request body. */

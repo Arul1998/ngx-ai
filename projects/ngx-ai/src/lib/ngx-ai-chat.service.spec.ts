@@ -113,6 +113,51 @@ describe('NgxAiChatService', () => {
     expect(message).toContain('Invalid API key');
   });
 
+  it('maps responseFormat to the response_format body field', () => {
+    service
+      .chat([{ role: 'user', content: 'Hi' }], { responseFormat: { type: 'json_object' } })
+      .subscribe();
+
+    const req = httpMock.expectOne('/api/ai/chat/completions');
+    expect(req.request.body.response_format).toEqual({ type: 'json_object' });
+    req.flush({ id: '1', choices: [] });
+  });
+
+  it('json() defaults response_format to json_object and parses the reply into T', () => {
+    let value: { city: string } | undefined;
+    service.json<{ city: string }>([{ role: 'user', content: 'a city' }]).subscribe((v) => {
+      value = v;
+    });
+
+    const req = httpMock.expectOne('/api/ai/chat/completions');
+    expect(req.request.body.response_format).toEqual({ type: 'json_object' });
+    req.flush({ id: '1', choices: [{ message: { content: '{"city":"Paris"}' } }] });
+
+    expect(value).toEqual({ city: 'Paris' });
+  });
+
+  it('json() lets the caller override response_format', () => {
+    const schema = { type: 'json_schema', json_schema: { name: 'x', schema: {} } };
+    service.json([{ role: 'user', content: 'Hi' }], { responseFormat: schema }).subscribe();
+
+    const req = httpMock.expectOne('/api/ai/chat/completions');
+    expect(req.request.body.response_format).toEqual(schema);
+    req.flush({ id: '1', choices: [{ message: { content: '{}' } }] });
+  });
+
+  it('json() raises a readable error when the reply is not valid JSON', () => {
+    let err: unknown;
+    service.json([{ role: 'user', content: 'Hi' }]).subscribe({ error: (e) => (err = e) });
+
+    httpMock
+      .expectOne('/api/ai/chat/completions')
+      .flush({ id: '1', choices: [{ message: { content: 'not json' } }] });
+
+    expect(err).toBeInstanceOf(Error);
+    expect((err as Error).message).toContain('[ngx-ai]');
+    expect((err as Error).message).toContain('parse JSON');
+  });
+
   it('stream() parses CRLF-delimited SSE events split across reads', async () => {
     const sse =
       'data: {"id":"1","choices":[{"delta":{"content":"He"}}]}\r\n\r\n' +
