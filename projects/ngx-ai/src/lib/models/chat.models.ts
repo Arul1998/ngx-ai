@@ -4,13 +4,69 @@
 export type ChatRole = 'system' | 'user' | 'assistant' | 'tool';
 
 /**
+ * A tool call requested by the assistant. `arguments` is a JSON **string**
+ * (parse it before use) so it can be streamed and forwarded verbatim.
+ */
+export interface ToolCall {
+  id: string;
+  type: 'function';
+  function: {
+    name: string;
+    arguments: string;
+  };
+}
+
+/**
  * A single message in a chat conversation.
  */
 export interface ChatMessage {
   role: ChatRole;
-  content: string;
+  /**
+   * The message text. May be `null` on an assistant message that only
+   * requests tool calls.
+   */
+  content: string | null;
   /** Optional name of the participant (used by some providers/tools). */
   name?: string;
+  /** Tool calls requested by the assistant (role `assistant`). */
+  tool_calls?: ToolCall[];
+  /** The id of the tool call this message answers (role `tool`). */
+  tool_call_id?: string;
+}
+
+/**
+ * A callable tool exposed to the model. Currently only `function` tools are
+ * defined by the OpenAI-compatible spec.
+ */
+export interface ToolDefinition {
+  type: 'function';
+  function: {
+    name: string;
+    description?: string;
+    /** JSON Schema describing the function parameters. */
+    parameters?: Record<string, unknown>;
+  };
+}
+
+/**
+ * How the model should choose tools: a preset, or a specific function to force.
+ */
+export type ToolChoice =
+  'auto' | 'none' | 'required' | { type: 'function'; function: { name: string } };
+
+/**
+ * A streamed fragment of a tool call. The provider sends these incrementally,
+ * keyed by `index`; concatenate `function.arguments` fragments per index to
+ * rebuild the full call.
+ */
+export interface ToolCallDelta {
+  index: number;
+  id?: string;
+  type?: 'function';
+  function?: {
+    name?: string;
+    arguments?: string;
+  };
 }
 
 /**
@@ -34,6 +90,10 @@ export interface ChatCompletionOptions {
    * {@link NgxAiChatService.json} sets `{ type: 'json_object' }` by default.
    */
   responseFormat?: unknown;
+  /** Tools (functions) the model may call. */
+  tools?: ToolDefinition[];
+  /** Constrains which tool, if any, the model may call. */
+  toolChoice?: ToolChoice;
   /** Abort signal to cancel an in-flight streaming request. */
   signal?: AbortSignal;
   /** Provider-specific fields merged as-is into the request body. */
@@ -55,9 +115,11 @@ export interface TokenUsage {
 export interface ChatCompletionResponse {
   id: string;
   model: string;
-  /** The full assistant message content. */
+  /** The full assistant message content (empty string when only tools are called). */
   content: string;
-  /** Why generation stopped (e.g. `stop`, `length`), when reported. */
+  /** Tool calls the assistant requested, when any. */
+  toolCalls?: ToolCall[];
+  /** Why generation stopped (e.g. `stop`, `length`, `tool_calls`), when reported. */
   finishReason: string | null;
   usage?: TokenUsage;
   /** The untouched provider payload, for advanced use. */
@@ -72,6 +134,8 @@ export interface ChatStreamChunk {
   model: string;
   /** The incremental text produced by this chunk (may be empty). */
   delta: string;
+  /** Incremental tool-call fragments in this chunk, when the model is calling tools. */
+  toolCalls?: ToolCallDelta[];
   /** Why generation stopped, present only on the final chunk. */
   finishReason: string | null;
   /** The untouched provider chunk payload, for advanced use. */

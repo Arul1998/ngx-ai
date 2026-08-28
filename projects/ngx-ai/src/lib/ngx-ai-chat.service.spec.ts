@@ -158,6 +158,66 @@ describe('NgxAiChatService', () => {
     expect((err as Error).message).toContain('parse JSON');
   });
 
+  it('maps tools and toolChoice to snake_case body fields', () => {
+    const tools = [
+      { type: 'function' as const, function: { name: 'get_weather', description: 'Get weather' } },
+    ];
+    service
+      .chat([{ role: 'user', content: 'Weather?' }], { tools, toolChoice: 'auto' })
+      .subscribe();
+
+    const req = httpMock.expectOne('/api/ai/chat/completions');
+    expect(req.request.body.tools).toEqual(tools);
+    expect(req.request.body.tool_choice).toBe('auto');
+    req.flush({ id: '1', choices: [] });
+  });
+
+  it('surfaces assistant tool calls on the response', () => {
+    let res: import('./models/chat.models').ChatCompletionResponse | undefined;
+    service.chat([{ role: 'user', content: 'Weather?' }]).subscribe((r) => (res = r));
+
+    httpMock.expectOne('/api/ai/chat/completions').flush({
+      id: '1',
+      choices: [
+        {
+          message: {
+            role: 'assistant',
+            content: null,
+            tool_calls: [
+              {
+                id: 'call_1',
+                type: 'function',
+                function: { name: 'get_weather', arguments: '{"city":"Paris"}' },
+              },
+            ],
+          },
+          finish_reason: 'tool_calls',
+        },
+      ],
+    });
+
+    expect(res!.content).toBe('');
+    expect(res!.finishReason).toBe('tool_calls');
+    expect(res!.toolCalls).toEqual([
+      {
+        id: 'call_1',
+        type: 'function',
+        function: { name: 'get_weather', arguments: '{"city":"Paris"}' },
+      },
+    ]);
+  });
+
+  it('omits toolCalls when the assistant does not call a tool', () => {
+    let res: import('./models/chat.models').ChatCompletionResponse | undefined;
+    service.chat([{ role: 'user', content: 'Hi' }]).subscribe((r) => (res = r));
+
+    httpMock
+      .expectOne('/api/ai/chat/completions')
+      .flush({ id: '1', choices: [{ message: { content: 'Hello' }, finish_reason: 'stop' }] });
+
+    expect(res!.toolCalls).toBeUndefined();
+  });
+
   it('stream() parses CRLF-delimited SSE events split across reads', async () => {
     const sse =
       'data: {"id":"1","choices":[{"delta":{"content":"He"}}]}\r\n\r\n' +

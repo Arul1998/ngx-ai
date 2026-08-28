@@ -7,10 +7,11 @@ import {
   ChatCompletionResponse,
   ChatMessage,
   ChatStreamChunk,
+  ToolCall,
 } from './models/chat.models';
 import { SseParser } from './stream/sse-parser';
 import { STREAM_DONE, chatChunkFromSseData } from './stream/chat-stream';
-import { OpenAiCompletionPayload } from './models/provider';
+import { OpenAiCompletionPayload, OpenAiToolCall } from './models/provider';
 
 /**
  * RxJS-friendly client for OpenAI-compatible chat completion APIs
@@ -190,6 +191,8 @@ export class NgxAiChatService {
     if (options.topP !== undefined) body['top_p'] = options.topP;
     if (options.stop !== undefined) body['stop'] = options.stop;
     if (options.responseFormat !== undefined) body['response_format'] = options.responseFormat;
+    if (options.tools !== undefined) body['tools'] = options.tools;
+    if (options.toolChoice !== undefined) body['tool_choice'] = options.toolChoice;
     return body;
   }
 
@@ -207,10 +210,12 @@ export class NgxAiChatService {
   private mapCompletion(res: OpenAiCompletionPayload): ChatCompletionResponse {
     const choice = res.choices?.[0];
     const usage = res.usage;
+    const toolCalls = mapToolCalls(choice?.message?.tool_calls);
     return {
       id: res.id ?? '',
       model: res.model ?? this.config.model,
       content: choice?.message?.content ?? '',
+      ...(toolCalls ? { toolCalls } : {}),
       finishReason: choice?.finish_reason ?? null,
       usage: usage
         ? {
@@ -222,6 +227,19 @@ export class NgxAiChatService {
       raw: res,
     };
   }
+}
+
+/** Normalize provider tool calls into the public {@link ToolCall} shape, or `undefined`. */
+function mapToolCalls(calls: OpenAiToolCall[] | undefined): ToolCall[] | undefined {
+  if (!calls?.length) return undefined;
+  return calls.map((call) => ({
+    id: call.id ?? '',
+    type: 'function',
+    function: {
+      name: call.function?.name ?? '',
+      arguments: call.function?.arguments ?? '',
+    },
+  }));
 }
 
 async function safeReadText(response: Response): Promise<string> {

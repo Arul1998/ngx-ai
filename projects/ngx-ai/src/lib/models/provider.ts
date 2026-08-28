@@ -7,16 +7,33 @@
  * proxy or a minimal provider may omit any of them.
  */
 
+/** A tool call as returned by the provider (`message.tool_calls[]`). */
+export interface OpenAiToolCall {
+  id?: string;
+  type?: string;
+  function?: { name?: string; arguments?: string };
+}
+
+/** A streamed tool-call fragment (`delta.tool_calls[]`). */
+export interface OpenAiToolCallDelta {
+  index?: number;
+  id?: string;
+  type?: string;
+  function?: { name?: string; arguments?: string };
+}
+
 /** A message object as returned by the provider (`choices[].message`). */
 export interface OpenAiMessage {
   role?: string;
   content?: string | null;
+  tool_calls?: OpenAiToolCall[];
 }
 
 /** The incremental message fragment on a streaming choice (`choices[].delta`). */
 export interface OpenAiDelta {
   role?: string;
   content?: string | null;
+  tool_calls?: OpenAiToolCallDelta[];
 }
 
 /** One entry in the provider's `choices` array. */

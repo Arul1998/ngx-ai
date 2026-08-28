@@ -10,6 +10,7 @@
 - 🅰️ **Angular-native** — a `provideNgxAi()` provider, an injectable service, and a signal-backed `injectAiChat()` store. No modules, no boilerplate.
 - ⚡ **Signals-first** — `injectAiChat()` exposes `messages()`, `response()`, `loading()`, `streaming()` and `error()` as signals your templates react to automatically.
 - 🌊 **Streaming built in** — subscribe to tokens as they arrive; unsubscribe to abort.
+- 🛠️ **Tool calling & structured output** — typed `tools` / `tool_calls` and a `json<T>()` helper for JSON responses.
 - 🔌 **Provider presets** — `openai` and `grok` out of the box, plus `custom` for your proxy.
 - 🧩 **Typed, RxJS-first API** — everything returns `Observable`s that compose with the rest of your app.
 - 🔐 **Safe by default** — refuses to ship an API key to the browser unless you explicitly opt in.
@@ -164,6 +165,47 @@ this.ai.json<Weather>(messages, {
   },
 });
 ```
+
+## Tool calling
+
+Expose functions to the model with `tools`, then run whichever calls it asks
+for and feed the results back as `tool` messages. `arguments` arrives as a JSON
+**string** — parse it before use.
+
+```ts
+const tools = [
+  {
+    type: 'function' as const,
+    function: {
+      name: 'get_weather',
+      description: 'Get the current weather for a city',
+      parameters: {
+        type: 'object',
+        properties: { city: { type: 'string' } },
+        required: ['city'],
+      },
+    },
+  },
+];
+
+const messages: ChatMessage[] = [{ role: 'user', content: "What's the weather in Paris?" }];
+
+this.ai.chat(messages, { tools }).subscribe((res) => {
+  for (const call of res.toolCalls ?? []) {
+    const args = JSON.parse(call.function.arguments);
+    const result = getWeather(args.city); // your function
+
+    // Add the assistant's request and your tool result, then ask again.
+    messages.push({ role: 'assistant', content: res.content, tool_calls: res.toolCalls });
+    messages.push({ role: 'tool', tool_call_id: call.id, content: JSON.stringify(result) });
+  }
+  this.ai.chat(messages).subscribe((final) => console.log(final.content));
+});
+```
+
+While streaming, tool-call fragments arrive on `chunk.toolCalls` (keyed by
+`index`); concatenate each index's `function.arguments` fragments to rebuild the
+full call.
 
 ## Configuration
 

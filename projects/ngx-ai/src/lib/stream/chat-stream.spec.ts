@@ -47,4 +47,28 @@ describe('chatChunkFromSseData', () => {
       expect(chunk.finishReason).toBe('stop');
     }
   });
+
+  it('surfaces streaming tool-call fragments', () => {
+    const chunk = chatChunkFromSseData(
+      '{"choices":[{"delta":{"tool_calls":[{"index":0,"id":"call_1","type":"function","function":{"name":"get_weather","arguments":"{\\"ci"}}]}}]}',
+      'm',
+    );
+    expect(chunk).not.toBe(STREAM_DONE);
+    if (chunk && chunk !== STREAM_DONE) {
+      expect(chunk.delta).toBe('');
+      expect(chunk.toolCalls).toEqual([
+        {
+          index: 0,
+          id: 'call_1',
+          type: 'function',
+          function: { name: 'get_weather', arguments: '{"ci' },
+        },
+      ]);
+    }
+  });
+
+  it('does not add toolCalls to a plain text chunk', () => {
+    const chunk = chatChunkFromSseData('{"choices":[{"delta":{"content":"hi"}}]}', 'm');
+    if (chunk && chunk !== STREAM_DONE) expect(chunk.toolCalls).toBeUndefined();
+  });
 });

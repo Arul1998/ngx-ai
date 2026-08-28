@@ -70,7 +70,7 @@ export function injectAiChat(config: AiChatConfig = {}): AiChat {
   const response = computed(() => {
     const list = messages();
     const last = list[list.length - 1];
-    return last?.role === 'assistant' ? last.content : '';
+    return last?.role === 'assistant' ? (last.content ?? '') : '';
   });
 
   let controller: AbortController | null = null;
@@ -87,7 +87,7 @@ export function injectAiChat(config: AiChatConfig = {}): AiChat {
     messages.update((list) => {
       const copy = list.slice();
       const last = copy[copy.length - 1];
-      copy[copy.length - 1] = { ...last, content: last.content + delta };
+      copy[copy.length - 1] = { ...last, content: (last.content ?? '') + delta };
       return copy;
     });
   };

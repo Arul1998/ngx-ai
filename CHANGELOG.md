@@ -4,6 +4,23 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2026-08-28
+
+### Added
+
+- **Tool / function calling.** `ChatCompletionOptions` gains `tools` and
+  `toolChoice`, mapped to the provider `tools` / `tool_choice` fields.
+- New types: `ToolDefinition`, `ToolChoice`, `ToolCall` and `ToolCallDelta`.
+- `ChatCompletionResponse.toolCalls` surfaces the assistant's requested calls,
+  and streamed `ChatStreamChunk.toolCalls` carries incremental tool-call
+  fragments (keyed by `index`).
+
+### Changed
+
+- `ChatMessage.content` is now `string | null` (an assistant message may carry
+  only `tool_calls`), and `ChatMessage` gains optional `tool_calls` and
+  `tool_call_id` for tool-calling round-trips.
+
 ## [0.4.0] - 2026-08-28
 
 ### Added
@@ -72,6 +89,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `dangerouslyAllowBrowserApiKey` is set.
 - Unit test suite covering config resolution and request/response mapping.
 
+[0.5.0]: https://github.com/arul1998/ngx-ai/releases/tag/v0.5.0
 [0.4.0]: https://github.com/arul1998/ngx-ai/releases/tag/v0.4.0
 [0.3.0]: https://github.com/arul1998/ngx-ai/releases/tag/v0.3.0
 [0.2.0]: https://github.com/arul1998/ngx-ai/releases/tag/v0.2.0

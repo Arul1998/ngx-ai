@@ -28,10 +28,21 @@ export function chatChunkFromSseData(
   }
 
   const choice = json.choices?.[0];
+  const toolCallDeltas = choice?.delta?.tool_calls;
   return {
     id: json.id ?? '',
     model: json.model ?? fallbackModel,
     delta: choice?.delta?.content ?? '',
+    ...(toolCallDeltas?.length
+      ? {
+          toolCalls: toolCallDeltas.map((call) => ({
+            index: call.index ?? 0,
+            id: call.id,
+            type: call.type === 'function' ? ('function' as const) : undefined,
+            function: call.function,
+          })),
+        }
+      : {}),
     finishReason: choice?.finish_reason ?? null,
     raw: json,
   };
