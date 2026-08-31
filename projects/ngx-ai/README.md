@@ -247,7 +247,19 @@ The `custom` provider speaks the standard OpenAI chat-completions shape, so most
 | `json<T>(messages, options?)` | `Observable<T>`                      | Structured output, parsed into `T`.         |
 | `stream(messages, options?)`  | `Observable<ChatStreamChunk>`        | Token-by-token streaming.                   |
 
-`ChatCompletionOptions`: `model`, `temperature`, `maxTokens`, `topP`, `stop`, `signal`, `extraBody`.
+`ChatCompletionOptions`: `model`, `temperature`, `maxTokens`, `topP`, `stop`,
+`responseFormat`, `tools`, `toolChoice`, `signal`, `extraBody`.
+
+## Demo
+
+The repo ships a runnable Angular app that exercises streaming chat via
+`injectAiChat()`, cancellation, and live error handling. Clone the repo, then:
+
+```bash
+npm install
+npm run build   # build the library the demo consumes
+npm start       # http://localhost:4200
+```
 
 ## Contributing
 

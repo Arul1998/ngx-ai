@@ -3,8 +3,9 @@
   "version": "0.0.0",
   "scripts": {
     "ng": "ng",
-    "start": "ng serve",
+    "start": "ng serve demo",
     "build": "ng build ngx-ai",
+    "build:demo": "ng build demo",
     "watch": "ng build ngx-ai --watch --configuration development",
     "test": "ng test ngx-ai --watch=false",
     "format:check": "prettier --check \"projects/**/*.{ts,html,json,md}\"",

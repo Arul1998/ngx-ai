@@ -8,7 +8,8 @@
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
     "paths": {
-      "ngx-ai": ["./dist/ngx-ai"]
+      "ngx-ai": ["./dist/ngx-ai"],
+      "@arulcornelious/ngx-ai": ["./dist/ngx-ai"]
     },
     "skipLibCheck": true,
     "isolatedModules": true,
