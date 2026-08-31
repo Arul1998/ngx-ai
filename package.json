@@ -3,6 +3,7 @@
   "version": "0.0.0",
   "scripts": {
     "ng": "ng",
+    "prepublishOnly": "node -e \"console.error('\\n[ngx-ai] Do not publish the monorepo root. Run: npm run build && cd dist/ngx-ai && npm publish --access public\\n'); process.exit(1)\"",
     "start": "ng serve demo",
     "build": "ng build ngx-ai",
     "build:demo": "ng build demo",
