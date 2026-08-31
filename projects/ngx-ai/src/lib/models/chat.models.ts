@@ -94,6 +94,12 @@ export interface ChatCompletionOptions {
   tools?: ToolDefinition[];
   /** Constrains which tool, if any, the model may call. */
   toolChoice?: ToolChoice;
+  /**
+   * Number of extra attempts on a **transient** failure (network error or HTTP
+   * 5xx) for non-streaming `chat()` / `json()`, with exponential backoff.
+   * Defaults to `0` (no retry). 4xx errors are never retried.
+   */
+  retry?: number;
   /** Abort signal to cancel an in-flight streaming request. */
   signal?: AbortSignal;
   /** Provider-specific fields merged as-is into the request body. */

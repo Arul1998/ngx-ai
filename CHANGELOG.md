@@ -4,6 +4,23 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0] - 2026-08-31
+
+### Added
+
+- **`NgxAiError`** — a typed error class thrown by every failed request
+  (streaming and non-streaming), exposing a readable message and the HTTP
+  `status`. Exported for `instanceof` checks.
+- **`retry`** option on `ChatCompletionOptions` — automatically retries
+  transient failures (network errors and HTTP `5xx`) on `chat()` / `json()`
+  with exponential backoff. `4xx` responses are never retried.
+- CI now runs across a Node.js version matrix (20.x and 22.x).
+
+### Changed
+
+- `chat()`, `json()` and `stream()` now reject with `NgxAiError` (a subclass of
+  `Error`, so existing `instanceof Error` handling keeps working).
+
 ## [0.6.0] - 2026-08-31
 
 ### Added
@@ -102,6 +119,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `dangerouslyAllowBrowserApiKey` is set.
 - Unit test suite covering config resolution and request/response mapping.
 
+[0.7.0]: https://github.com/arul1998/ngx-ai/releases/tag/v0.7.0
 [0.6.0]: https://github.com/arul1998/ngx-ai/releases/tag/v0.6.0
 [0.5.0]: https://github.com/arul1998/ngx-ai/releases/tag/v0.5.0
 [0.4.0]: https://github.com/arul1998/ngx-ai/releases/tag/v0.4.0

@@ -1,6 +1,14 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
-import { Observable, catchError, map, throwError } from 'rxjs';
+import {
+  MonoTypeOperatorFunction,
+  Observable,
+  catchError,
+  map,
+  retry,
+  throwError,
+  timer,
+} from 'rxjs';
 import { NGX_AI_CONFIG, ResolvedNgxAiConfig } from './ngx-ai.config';
 import {
   ChatCompletionOptions,
@@ -12,6 +20,7 @@ import {
 import { SseParser } from './stream/sse-parser';
 import { STREAM_DONE, chatChunkFromSseData } from './stream/chat-stream';
 import { OpenAiCompletionPayload, OpenAiToolCall } from './models/provider';
+import { NgxAiError } from './errors';
 
 /**
  * RxJS-friendly client for OpenAI-compatible chat completion APIs
@@ -42,6 +51,7 @@ export class NgxAiChatService {
         headers: this.buildHeaders(),
       })
       .pipe(
+        retryTransient(options.retry ?? 0),
         map((res) => this.mapCompletion(res)),
         catchError((err) => throwError(() => toNgxAiError(err))),
       );
@@ -75,7 +85,7 @@ export class NgxAiChatService {
         try {
           return JSON.parse(res.content) as T;
         } catch {
-          throw new Error(
+          throw new NgxAiError(
             `[ngx-ai] Failed to parse JSON response. The model returned: ${res.content}`,
           );
         }
@@ -126,8 +136,9 @@ export class NgxAiChatService {
 
           if (!response.ok || !response.body) {
             const detail = await safeReadText(response);
-            throw new Error(
+            throw new NgxAiError(
               `[ngx-ai] Stream request failed (${response.status} ${response.statusText}). ${detail}`,
+              { status: response.status },
             );
           }
 
@@ -229,6 +240,24 @@ export class NgxAiChatService {
   }
 }
 
+/** Retry transient failures (network / HTTP 5xx) with exponential backoff. */
+function retryTransient<T>(attempts: number): MonoTypeOperatorFunction<T> {
+  if (attempts <= 0) return (source) => source;
+  return retry<T>({
+    count: attempts,
+    delay: (error, retryCount) => {
+      if (!isTransient(error)) return throwError(() => error);
+      const backoff = Math.min(500 * 2 ** (retryCount - 1), 8000);
+      return timer(backoff);
+    },
+  });
+}
+
+/** A failure worth retrying: a network error (status 0) or a server-side 5xx. */
+function isTransient(error: unknown): boolean {
+  return error instanceof HttpErrorResponse && (error.status === 0 || error.status >= 500);
+}
+
 /** Normalize provider tool calls into the public {@link ToolCall} shape, or `undefined`. */
 function mapToolCalls(calls: OpenAiToolCall[] | undefined): ToolCall[] | undefined {
   if (!calls?.length) return undefined;
@@ -251,18 +280,18 @@ async function safeReadText(response: Response): Promise<string> {
 }
 
 /**
- * Normalize a failed `HttpClient` request into a single, readable `[ngx-ai]`
- * error, matching the shape thrown by {@link NgxAiChatService.stream}. The
- * original `HttpErrorResponse` is preserved on the `cause` for advanced use.
+ * Normalize a failed `HttpClient` request into a single, readable
+ * {@link NgxAiError}, matching the shape thrown by {@link NgxAiChatService.stream}.
+ * The original `HttpErrorResponse` is preserved on `cause` for advanced use.
  */
 function toNgxAiError(err: unknown): Error {
   if (err instanceof HttpErrorResponse) {
     const detail = extractErrorDetail(err.error);
     const message =
       `[ngx-ai] Request failed (${err.status} ${err.statusText}).` + (detail ? ` ${detail}` : '');
-    return new Error(message, { cause: err });
+    return new NgxAiError(message, { status: err.status, cause: err });
   }
-  return err instanceof Error ? err : new Error(`[ngx-ai] Request failed. ${String(err)}`);
+  return err instanceof Error ? err : new NgxAiError(`[ngx-ai] Request failed. ${String(err)}`);
 }
 
 /** Pull a human-readable message out of a provider error payload, if present. */

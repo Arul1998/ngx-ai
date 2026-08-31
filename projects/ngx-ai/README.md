@@ -15,7 +15,10 @@
 - 🧩 **Typed, RxJS-first API** — everything returns `Observable`s that compose with the rest of your app.
 - 🔐 **Safe by default** — refuses to ship an API key to the browser unless you explicitly opt in.
 
-> Built with Angular 22 and CI-tested there. Uses only stable Angular APIs (`inject`, standalone providers). If you need a specific older Angular version supported, please [open an issue](https://github.com/arul1998/ngx-ai/issues).
+> **Compatibility:** built and CI-tested on Angular 22 (Node 20 & 22). The
+> library uses only APIs available since Angular 16 — signals, `inject`,
+> standalone providers — so the `>=17` peer range is intentionally conservative.
+> Hit a snag on an older version? [Open an issue](https://github.com/arul1998/ngx-ai/issues).
 
 ## Installation
 
@@ -207,6 +210,31 @@ While streaming, tool-call fragments arrive on `chunk.toolCalls` (keyed by
 `index`); concatenate each index's `function.arguments` fragments to rebuild the
 full call.
 
+## Errors & retries
+
+Every failed request — streaming or not — rejects with an **`NgxAiError`**
+carrying a readable message and the HTTP `status`, so you can branch on it:
+
+```ts
+import { NgxAiError } from '@arulcornelious/ngx-ai';
+
+this.ai.chat(messages).subscribe({
+  error: (err) => {
+    if (err instanceof NgxAiError && err.status === 429) {
+      // back off and try again later
+    }
+  },
+});
+```
+
+Opt into automatic retries for transient failures (network errors and HTTP
+`5xx`) on the non-streaming calls with exponential backoff — `4xx` responses are
+never retried:
+
+```ts
+this.ai.chat(messages, { retry: 2 }).subscribe(/* … */);
+```
+
 ## Configuration
 
 | Option                          | Type                             | Default    | Notes                                                   |
@@ -248,7 +276,7 @@ The `custom` provider speaks the standard OpenAI chat-completions shape, so most
 | `stream(messages, options?)`  | `Observable<ChatStreamChunk>`        | Token-by-token streaming.                   |
 
 `ChatCompletionOptions`: `model`, `temperature`, `maxTokens`, `topP`, `stop`,
-`responseFormat`, `tools`, `toolChoice`, `signal`, `extraBody`.
+`responseFormat`, `tools`, `toolChoice`, `retry`, `signal`, `extraBody`.
 
 ## Demo
 

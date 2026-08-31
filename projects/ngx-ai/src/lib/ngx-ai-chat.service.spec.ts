@@ -3,6 +3,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { NgxAiChatService } from './ngx-ai-chat.service';
 import { provideNgxAi } from './ngx-ai.config';
+import { NgxAiError } from './errors';
 
 describe('NgxAiChatService', () => {
   let service: NgxAiChatService;
@@ -22,6 +23,7 @@ describe('NgxAiChatService', () => {
 
   afterEach(() => httpMock.verify());
   afterEach(() => vi.unstubAllGlobals());
+  afterEach(() => vi.useRealTimers());
 
   it('is created', () => {
     expect(service).toBeTruthy();
@@ -106,11 +108,46 @@ describe('NgxAiChatService', () => {
         { status: 401, statusText: 'Unauthorized' },
       );
 
-    expect(err).toBeInstanceOf(Error);
+    expect(err).toBeInstanceOf(NgxAiError);
+    expect((err as NgxAiError).status).toBe(401);
     const message = (err as Error).message;
     expect(message).toContain('[ngx-ai]');
     expect(message).toContain('401');
     expect(message).toContain('Invalid API key');
+  });
+
+  it('does not retry a 4xx error', () => {
+    let err: unknown;
+    service
+      .chat([{ role: 'user', content: 'Hi' }], { retry: 2 })
+      .subscribe({ error: (e) => (err = e) });
+
+    httpMock
+      .expectOne('/api/ai/chat/completions')
+      .flush({ error: { message: 'bad' } }, { status: 400, statusText: 'Bad Request' });
+
+    // A single request is made; no retry is scheduled for client errors.
+    expect(err).toBeInstanceOf(NgxAiError);
+    expect((err as NgxAiError).status).toBe(400);
+  });
+
+  it('retries a transient 500 with backoff, then succeeds', async () => {
+    vi.useFakeTimers();
+    let res: import('./models/chat.models').ChatCompletionResponse | undefined;
+    service.chat([{ role: 'user', content: 'Hi' }], { retry: 1 }).subscribe((r) => (res = r));
+
+    httpMock
+      .expectOne('/api/ai/chat/completions')
+      .flush({ error: { message: 'boom' } }, { status: 500, statusText: 'Server Error' });
+
+    // Advance past the backoff so the retry fires.
+    await vi.advanceTimersByTimeAsync(600);
+
+    httpMock
+      .expectOne('/api/ai/chat/completions')
+      .flush({ id: '2', choices: [{ message: { content: 'recovered' } }] });
+
+    expect(res?.content).toBe('recovered');
   });
 
   it('maps responseFormat to the response_format body field', () => {
