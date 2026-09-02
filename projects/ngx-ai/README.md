@@ -289,6 +289,18 @@ npm run build   # build the library the demo consumes
 npm start       # http://localhost:4200
 ```
 
+## Stability
+
+As of **v1.0.0** the public API is stable and follows
+[Semantic Versioning](https://semver.org/): breaking changes to the exported
+surface (`provideNgxAi`, `NgxAiChatService`, `injectAiChat`, `NgxAiError`, and
+the exported types) will only land in a new major version.
+
+> **Migrating from 0.x:** the only breaking type change during the 0.x line was
+> `ChatMessage.content`, which became `string | null` in 0.5.0 to support
+> assistant messages that contain only tool calls. If you read `content` as a
+> plain `string`, coalesce it: `msg.content ?? ''`.
+
 ## Contributing
 
 Issues and PRs welcome — see [CONTRIBUTING.md](https://github.com/arul1998/ngx-ai/blob/main/CONTRIBUTING.md).

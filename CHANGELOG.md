@@ -4,6 +4,23 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0] - 2026-09-02
+
+First stable release. No code changes since 0.7.0 — this marks the public API as
+stable under [Semantic Versioning](https://semver.org/). The exported surface is:
+
+- `provideNgxAi()` / `resolveNgxAiConfig()` / `NGX_AI_CONFIG`
+- `NgxAiChatService` — `chat()`, `complete()`, `json<T>()`, `stream()`
+- `injectAiChat()` — signal-backed chat store
+- `NgxAiError`, `SseParser`, and the exported model/tool types
+
+Future breaking changes to this surface will only land in a new major version.
+
+### Migration from 0.x
+
+- `ChatMessage.content` is `string | null` (since 0.5.0). If you read it as a
+  plain `string`, coalesce with `msg.content ?? ''`.
+
 ## [0.7.0] - 2026-08-31
 
 ### Added
@@ -119,6 +136,7 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   `dangerouslyAllowBrowserApiKey` is set.
 - Unit test suite covering config resolution and request/response mapping.
 
+[1.0.0]: https://github.com/arul1998/ngx-ai/releases/tag/v1.0.0
 [0.7.0]: https://github.com/arul1998/ngx-ai/releases/tag/v0.7.0
 [0.6.0]: https://github.com/arul1998/ngx-ai/releases/tag/v0.6.0
 [0.5.0]: https://github.com/arul1998/ngx-ai/releases/tag/v0.5.0
