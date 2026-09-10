@@ -32,6 +32,10 @@ streaming and a safe-by-default key policy built in.
 
 ## Demo
 
+<p align="center">
+  <img src="docs/demo.png" alt="ngx-ai demo: streaming chat against an OpenAI-compatible base URL" width="560" />
+</p>
+
 A small Angular app in [`projects/demo`](projects/demo) exercises the library —
 streaming chat via `injectAiChat()`, cancellation, live error handling, and a
 runtime provider/model/key switcher. Run it locally:
